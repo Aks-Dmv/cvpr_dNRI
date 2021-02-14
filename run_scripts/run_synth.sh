@@ -1,4 +1,4 @@
-GPU=0 # Set to whatever GPU you want to use
+GPU=2 # Set to whatever GPU you want to use
 
 # First: process data
 
