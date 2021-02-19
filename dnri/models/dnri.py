@@ -20,6 +20,7 @@ class DNRI(nn.Module):
         else:
             self.decoder = DNRI_Decoder(params)
         self.num_edge_types = params.get('num_edge_types')
+        self.disc = DNRI_Disc(params)
 
         # Training params
         self.gumbel_temp = params.get('gumbel_temp')
@@ -95,6 +96,14 @@ class DNRI(nn.Module):
             all_predictions.append(predictions)
             all_edges.append(edges)
         all_predictions = torch.stack(all_predictions, dim=1)
+
+        x1_x2_pairs = torch.cat([all_predictions[:, :-1, :, :], all_predictions[:, 1:, :, :]], dim=-1)
+        discrim_pred = self.disc(x1_x2_pairs)
+        discrim_prob = F.softmax(discrim_pred, dim=-1)
+        kl_div = discrim_prob * torch.log(discrim_prob + 1e-16)
+        kl_div = kl_div.sum(-1)
+
+
         target = inputs[:, 1:, :, :]
         loss_nll = self.nll(all_predictions, target)
         prob = F.softmax(posterior_logits, dim=-1)
@@ -102,7 +111,7 @@ class DNRI(nn.Module):
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
         loss = loss_nll + self.kl_coef*loss_kl
-        loss = loss.mean()
+        loss = loss.mean() - kl_div.mean()
 
         if return_edges:
             return loss, loss_nll, loss_kl, edges
