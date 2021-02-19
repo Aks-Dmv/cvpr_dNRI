@@ -21,5 +21,5 @@ MODEL_ARGS="--model_type dnri --graph_type dynamic --skip_first --num_edge_types
 TRAINING_ARGS='--add_uniform_prior --no_edge_prior 0.9 --batch_size 128 --lr 5e-4 --use_adam --num_epochs 500 --lr_decay_factor 0.1 --lr_decay_steps 500 --normalize_kl --normalize_nll --tune_on_nll --val_teacher_forcing --teacher_forcing_steps -1'
 mkdir -p $WORKING_DIR
 CUDA_VISIBLE_DEVICES=$GPU python -u dnri/experiments/small_synth_experiment.py --gpu --mode train --data_path $DATA_PATH --working_dir $WORKING_DIR $MODEL_ARGS $TRAINING_ARGS |& tee "${WORKING_DIR}results.txt"
-CUDA_VISIBLE_DEVICES=$GPU python -u dnri/experiments/small_synth_experiment.py --gpu --load_best_model --mode eval --data_path $DATA_PATH --working_dir $WORKING_DIR $MODEL_ARGS $TRAINING_ARGS |& tee "${WORKING_DIR}eval_results.txt"
-CUDA_VISIBLE_DEVICES=$GPU python -u dnri/experiments/small_synth_experiment.py --gpu --load_best_model --test_burn_in_steps 25 --mode eval --data_path $DATA_PATH --working_dir $WORKING_DIR $MODEL_ARGS $TRAINING_ARGS |& tee "${WORKING_DIR}eval_results_25step.txt"
+# CUDA_VISIBLE_DEVICES=$GPU python -u dnri/experiments/small_synth_experiment.py --gpu --load_best_model --mode eval --data_path $DATA_PATH --working_dir $WORKING_DIR $MODEL_ARGS $TRAINING_ARGS |& tee "${WORKING_DIR}eval_results.txt"
+# CUDA_VISIBLE_DEVICES=$GPU python -u dnri/experiments/small_synth_experiment.py --gpu --load_best_model --test_burn_in_steps 25 --mode eval --data_path $DATA_PATH --working_dir $WORKING_DIR $MODEL_ARGS $TRAINING_ARGS |& tee "${WORKING_DIR}eval_results_25step.txt"
