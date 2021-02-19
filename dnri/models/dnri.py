@@ -100,8 +100,8 @@ class DNRI(nn.Module):
         x1_x2_pairs = torch.cat([all_predictions[:, :-1, :, :], all_predictions[:, 1:, :, :]], dim=-1)
         discrim_pred = self.disc(x1_x2_pairs)
         discrim_prob = F.softmax(discrim_pred, dim=-1)
-        kl_div = discrim_prob * torch.log(discrim_prob + 1e-16)
-        kl_div = kl_div.sum(-1)
+        disc_entropy = discrim_prob * torch.log(discrim_prob + 1e-16)
+        disc_entropy = disc_entropy.sum(-1)
 
 
         target = inputs[:, 1:, :, :]
@@ -111,7 +111,7 @@ class DNRI(nn.Module):
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
         loss = loss_nll + self.kl_coef*loss_kl
-        loss = loss.mean() - kl_div.mean()
+        loss = loss.mean() - disc_entropy.mean()
 
         if return_edges:
             return loss, loss_nll, loss_kl, edges
