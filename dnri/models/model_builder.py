@@ -13,7 +13,7 @@ def build_model(params):
             model = dnri_dynamicvars.DNRI_DynamicVars(params)
         else:
             model = dnri.DNRI(params)
-        print("dNRI MODEL: ",model)
+        #print("dNRI MODEL: ",model)
 
     else:
         num_vars = params['num_vars']
