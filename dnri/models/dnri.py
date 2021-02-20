@@ -110,8 +110,8 @@ class DNRI(nn.Module):
         loss_kl = self.kl_categorical_learned(prob, prior_logits)
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
-        loss = loss_nll + self.kl_coef*loss_kl
-        loss = loss.mean() - 10*disc_entropy.mean()
+        loss = loss_nll + loss_kl
+        loss = loss.mean() - self.kl_coef*disc_entropy.mean()
 
         if return_edges:
             return loss, loss_nll, loss_kl, edges
