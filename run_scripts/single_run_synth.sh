@@ -11,7 +11,7 @@ mkdir -p $DATA_PATH
 BASE_RESULTS_DIR="results/synth/"
 
 SEED=1
-KL_VAL=10.0
+KL_VAL=10
 
 WORKING_DIR="${BASE_RESULTS_DIR}dnri/seed_${SEED}/"
 ENCODER_ARGS="--encoder_hidden 256 --encoder_mlp_num_layers 3 --encoder_mlp_hidden 128 --encoder_rnn_hidden 64"
