@@ -32,7 +32,7 @@ class DNRI(nn.Module):
         self.normalize_nll = params.get('normalize_nll', False)
         self.normalize_nll_per_var = params.get('normalize_nll_per_var', False)
         self.kl_coef = params.get('kl_coef', 1.)
-        self.disc_coef = params.get('disc_coef', 10.)
+        self.disc_coef = params.get('disc_coef', 10.)*0.5
         self.nll_loss_type = params.get('nll_loss_type', 'crossent')
         self.prior_variance = params.get('prior_variance')
         self.timesteps = params.get('timesteps', 0)
