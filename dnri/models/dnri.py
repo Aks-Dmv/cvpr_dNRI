@@ -32,6 +32,7 @@ class DNRI(nn.Module):
         self.normalize_nll = params.get('normalize_nll', False)
         self.normalize_nll_per_var = params.get('normalize_nll_per_var', False)
         self.kl_coef = params.get('kl_coef', 1.)
+        self.disc_coef = params.get('disc_coef', 10.)
         self.nll_loss_type = params.get('nll_loss_type', 'crossent')
         self.prior_variance = params.get('prior_variance')
         self.timesteps = params.get('timesteps', 0)
@@ -111,7 +112,7 @@ class DNRI(nn.Module):
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
         loss = loss_nll + self.kl_coef*loss_kl
-        loss = loss.mean() - 10*disc_entropy.mean()
+        loss = loss.mean() - self.disc_coef*disc_entropy.mean()
 
         if return_edges:
             return loss, loss_nll, loss_kl, edges
