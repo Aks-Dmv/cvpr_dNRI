@@ -89,7 +89,7 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             
             valid_idx = disc_logits.nonzero().view(-1)
             valid_idx0 = torch.randint(discrim_prob.shape[0], (valid_idx.shape[0],))
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             final_disc_prob = torch.cat([discrim_prob[valid_idx], discrim_prob[valid_idx0]], dim=0)
             final_disc_logits = torch.cat([disc_logits[valid_idx], disc_logits[valid_idx0]], dim=0)
             disc_loss= CEloss(final_disc_prob, final_disc_logits)
