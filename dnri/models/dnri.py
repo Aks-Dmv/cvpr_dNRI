@@ -226,7 +226,7 @@ class DNRI(nn.Module):
             return result.unsqueeze(0)
 
     def nll(self, preds, target):
-        print("loss type", self.nll_loss_type)
+        #print("loss type", self.nll_loss_type)
         if self.nll_loss_type == 'crossent':
             return self.nll_crossent(preds, target)
         elif self.nll_loss_type == 'gaussian':
@@ -235,7 +235,7 @@ class DNRI(nn.Module):
             return self.nll_poisson(preds, target)
 
     def nll_gaussian(self, preds, target, add_const=False):
-        print(self.prior_variance, "var")
+        #print(self.prior_variance, "var")
         neg_log_p = ((preds - target) ** 2 / (2 * self.prior_variance))
         const = 0.5 * np.log(2 * np.pi * self.prior_variance)
         #neg_log_p += const
