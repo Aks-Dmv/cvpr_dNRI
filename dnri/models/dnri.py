@@ -108,7 +108,7 @@ class DNRI(nn.Module):
         loss_nll = self.nll(all_predictions, target)
         
         gamma = self.kl_coef*0.5
-        print("hellooo", loss_nll.shape, "loss shape")
+        #print("hellooo", loss_nll.shape, "loss shape")
         for i in reversed(range(1,len(loss_nll[1])-1)):
             loss_nll[:,i] = loss_nll[:,i]*i**2
 
