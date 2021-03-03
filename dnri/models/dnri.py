@@ -20,7 +20,7 @@ class DNRI(nn.Module):
         else:
             self.decoder = DNRI_Decoder(params)
         self.num_edge_types = params.get('num_edge_types')
-        self.disc = DNRI_Disc(params)
+        #self.disc = DNRI_Disc(params)
 
         # Training params
         self.gumbel_temp = params.get('gumbel_temp')
@@ -71,7 +71,7 @@ class DNRI(nn.Module):
         predictions, decoder_hidden = self.decoder(inputs, decoder_hidden, edges)
         return predictions, decoder_hidden, edges
 
-    def calculate_loss(self, inputs, is_train=False, teacher_forcing=True, return_edges=False, return_logits=False, use_prior_logits=False):
+    def calculate_loss(self, inputs, is_train=False, teacher_forcing=True, return_edges=False, return_logits=False, use_prior_logits=False, disc=None):
         decoder_hidden = self.decoder.get_initial_hidden(inputs)
         num_time_steps = inputs.size(1)
         all_edges = []
@@ -96,23 +96,35 @@ class DNRI(nn.Module):
             all_predictions.append(predictions)
             all_edges.append(edges)
         all_predictions = torch.stack(all_predictions, dim=1)
-
-        x1_x2_pairs = torch.cat([all_predictions[:, :-1, :, :], all_predictions[:, 1:, :, :]], dim=-1)
-        discrim_pred = self.disc(x1_x2_pairs)
-        discrim_prob = F.softmax(discrim_pred, dim=-1)
-        disc_entropy = discrim_prob * torch.log(discrim_prob + 1e-16)
-        disc_entropy = disc_entropy.sum(-1)
-
+        
+        if disc is not None:
+            x1_x2_pairs = torch.cat([all_predictions[:, :-1, :, :], all_predictions[:, 1:, :, :]], dim=-1)
+            discrim_pred = disc(x1_x2_pairs)
+            discrim_prob = F.softmax(discrim_pred, dim=-1)
+            disc_entropy = discrim_prob * torch.log(discrim_prob + 1e-16)
+            disc_entropy = disc_entropy.sum(-1)
 
         target = inputs[:, 1:, :, :]
         loss_nll = self.nll(all_predictions, target)
+        
+        gamma = self.kl_coef*0.5
+        print("hellooo", loss_nll.shape, "loss shape")
+        for i in reversed(range(1,len(loss_nll[1])-1)):
+            loss_nll[:,i] = loss_nll[:,i]*i**2
+
+        loss_nll = loss_nll.mean(dim=-1)
+        
         prob = F.softmax(posterior_logits, dim=-1)
         loss_kl = self.kl_categorical_learned(prob, prior_logits)
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
         loss = loss_nll + loss_kl
-        loss = loss.mean() - self.kl_coef*disc_entropy.mean()
-
+        if disc is not None:
+            loss = loss.mean() - self.kl_coef*disc_entropy.mean()
+        else:
+            loss = loss.mean()
+        
+        
         if return_edges:
             return loss, loss_nll, loss_kl, edges
         elif return_logits:
@@ -214,6 +226,7 @@ class DNRI(nn.Module):
             return result.unsqueeze(0)
 
     def nll(self, preds, target):
+        print("loss type", self.nll_loss_type)
         if self.nll_loss_type == 'crossent':
             return self.nll_crossent(preds, target)
         elif self.nll_loss_type == 'gaussian':
@@ -222,13 +235,14 @@ class DNRI(nn.Module):
             return self.nll_poisson(preds, target)
 
     def nll_gaussian(self, preds, target, add_const=False):
+        print(self.prior_variance, "var")
         neg_log_p = ((preds - target) ** 2 / (2 * self.prior_variance))
         const = 0.5 * np.log(2 * np.pi * self.prior_variance)
         #neg_log_p += const
         if self.normalize_nll_per_var:
             return neg_log_p.sum() / (target.size(0) * target.size(2))
         elif self.normalize_nll:
-            return (neg_log_p.sum(-1) + const).view(preds.size(0), -1).mean(dim=1)
+            return (neg_log_p.sum(-1) + const).mean(dim=-1)#.view(preds.size(0), -1).mean(dim=1)
         else:
             return neg_log_p.view(target.size(0), -1).sum() / (target.size(1))
 

@@ -10,6 +10,8 @@ import time, os
 import random
 import numpy as np
 
+import dnri.models.dnri as dnriModels
+
 def train(model, train_data, val_data, params, train_writer, val_writer):
     gpu = params.get('gpu', False)
     batch_size = params.get('batch_size', 1000)
@@ -32,13 +34,17 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
     train_data_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, drop_last=True)
     val_data_loader = DataLoader(val_data, batch_size=val_batch_size)
     lr = params['lr']
-    wd = params.get('wd', 0.)
+    wd = params.get('wd', 1e-4)
     mom = params.get('mom', 0.)
     
+    disc = dnriModels.DNRI_Disc(params).cuda()
+    disc_params = [param for param in disc.parameters() if param.requires_grad]
     model_params = [param for param in model.parameters() if param.requires_grad]
     if params.get('use_adam', False):
+        disc_opt = torch.optim.Adam(disc_params, lr=lr, weight_decay=wd)
         opt = torch.optim.Adam(model_params, lr=lr, weight_decay=wd)
     else:
+        disc_opt = torch.optim.SGD(disc_params, lr=lr, weight_decay=wd, momentum=mom)
         opt = torch.optim.SGD(model_params, lr=lr, weight_decay=wd, momentum=mom)
 
     working_dir = params['working_dir']
@@ -60,10 +66,14 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
         best_val_result = 10000000
     
     training_scheduler = train_utils.build_scheduler(opt, params)
+    disc_training_scheduler = train_utils.build_scheduler(disc_opt, params)
     end = start = 0 
     misc.seed(1)
+    CEloss = nn.CrossEntropyLoss()
     for epoch in range(start_epoch, num_epochs+1):
         #print("EPOCH", epoch, (end-start))
+        disc.train()
+        disc.train_percent = epoch / num_epochs
         model.train()
         model.train_percent = epoch / num_epochs
         start = time.time() 
@@ -71,7 +81,21 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             inputs = batch['inputs']
             if gpu:
                 inputs = inputs.cuda(non_blocking=True)
-            loss, loss_nll, loss_kl, logits, _ = model.calculate_loss(inputs, is_train=True, return_logits=True)
+            loss, loss_nll, loss_kl, logits, all_Preds = model.calculate_loss(inputs, is_train=True, return_logits=True, disc=disc)
+            x1_x2_pairs = torch.cat([all_Preds[:, :-1, :, :], all_Preds[:, 1:, :, :]], dim=-1).detach().clone().cuda()
+            discrim_pred = disc(x1_x2_pairs)
+            discrim_prob = nn.functional.softmax(discrim_pred, dim=-1).view(-1, logits.shape[-1])
+            disc_logits = logits[:,:-1,:,:].argmax(dim=-1).flatten().detach().clone().long()
+            
+            valid_idx = disc_logits.nonzero().view(-1)
+            valid_idx0 = torch.randint(discrim_prob.shape[0], (valid_idx.shape[0],))
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+            final_disc_prob = torch.cat([discrim_prob[valid_idx], discrim_prob[valid_idx0]], dim=0)
+            final_disc_logits = torch.cat([disc_logits[valid_idx], disc_logits[valid_idx0]], dim=0)
+            disc_loss= CEloss(final_disc_prob, final_disc_logits)
+            disc_loss.backward()
+            disc_opt.step()
+            disc_opt.zero_grad()
             loss.backward()
             if verbose:
                 print("\tBATCH %d OF %d: %f, %f, %f"%(batch_ind+1, len(train_data_loader), loss.item(), loss_nll.mean().item(), loss_kl.mean().item()))
@@ -89,6 +113,7 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             
         if training_scheduler is not None:
             training_scheduler.step()
+            disc_training_scheduler.step()
         
         if train_writer is not None:
             train_writer.add_scalar('loss', loss.item(), global_step=epoch)
@@ -100,6 +125,7 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             train_writer.add_scalar("KL Divergence", loss_kl.mean().item(), global_step=epoch)
         model.eval()
         opt.zero_grad()
+        disc_opt.zero_grad()
 
         total_nll = 0
         total_kl = 0

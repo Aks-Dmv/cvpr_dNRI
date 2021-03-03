@@ -66,8 +66,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_val', type=int, default=100)
     parser.add_argument('--num_test', type=int, default=100)
     parser.add_argument('--num_time_steps', type=int, default=50)
-    parser.add_argument('--pull_factor', type=float, default=0.1)
-    parser.add_argument('--push_factor', type=float, default=0.05)
+    parser.add_argument('--pull_factor', type=float, default=0.5)
+    parser.add_argument('--push_factor', type=float, default=0.5)
 
     args = parser.parse_args()
     np.random.seed(1)
@@ -89,15 +89,15 @@ if __name__ == '__main__':
         for time_step in range(args.num_time_steps):
             current_edge = np.array([0,0,0,0,0,0])
             current_edges.append(current_edge)
-            if np.linalg.norm(p3_loc - p1_loc) < 1:
+            if np.linalg.norm(p3_loc - p1_loc) < 1.5:
                 norm = np.linalg.norm(p3_loc - p1_loc)
-                coef = 1 - norm
+                coef = 0.5 - norm
                 dir_1 = (p3_loc - p1_loc)/norm
                 p3_vel += args.push_factor*coef*dir_1
                 current_edge[1] = 1
-            if np.linalg.norm(p3_loc - p2_loc) < 1:
+            if np.linalg.norm(p3_loc - p2_loc) < 1.5:
                 norm = np.linalg.norm(p3_loc - p2_loc)
-                coef = 1 - norm
+                coef = 0.5 - norm
                 dir_2 = (p3_loc - p2_loc)/norm
                 p3_vel += args.push_factor*coef*dir_2
                 current_edge[3] = 1

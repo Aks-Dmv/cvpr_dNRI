@@ -56,6 +56,9 @@ def eval_edges(model, dataset, params):
                 gt_edges = gt_edges[:, :-1]
             edge_count += edges.numel()
             full_edge_count += gt_edges.numel()
+            if batch_ind == 0:
+                for i in range(edges.shape[1]):
+                    print("edge/gt", edges[2,i,:].cpu().numpy(), gt_edges[2,i,:].cpu().numpy())
             correct_edges += ((edges == gt_edges)).sum().item()
             edge_0_count += (gt_edges == 0).sum().item()
             edge_1_count += (gt_edges == 1).sum().item()
@@ -144,6 +147,7 @@ if __name__ == '__main__':
     val_data = SmallSynthData(args.data_path, 'val', params)
 
     model = model_builder.build_model(params)
+    print("$$$$$$$$$$$$$ gumber temp", params.get('gumbel_temp'))
     if args.mode == 'train':
         with train_utils.build_writers(args.working_dir) as (train_writer, val_writer):
             train.train(model, train_data, val_data, params, train_writer, val_writer)
@@ -161,6 +165,8 @@ if __name__ == '__main__':
         print("\t1 STEP: ",test_mse_1)
         print("\t15 STEP: ",test_mse_15)
         print("\t25 STEP: ",test_mse_25)
+        for i in range(test_mse.shape[0]):
+            print(i,"th STEP: ",test_mse[i].item())
 
 
         f1, all_acc, acc_0, acc_1, edges = eval_edges(model, val_data, params)
