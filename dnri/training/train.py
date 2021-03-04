@@ -87,7 +87,7 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             discrim_prob = nn.functional.softmax(discrim_pred, dim=-1)
             disc_logits = logits[:,:-1,:,:].argmax(dim=-1)
             
-            if batch_ind == 0:
+            if batch_ind == 0 and (epoch % 99) == 0:
                 print("disc_prob/encoder_logits",discrim_prob.shape, disc_logits.shape)
                 for i in range(logits.shape[1]-1):
                     print("prob/trgt", discrim_prob[1,i,:].cpu().detach().argmax(dim=-1).numpy(), disc_logits[1,i,:].cpu().detach().numpy() )
