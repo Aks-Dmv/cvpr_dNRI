@@ -109,8 +109,8 @@ class DNRI(nn.Module):
         
         gamma = self.kl_coef*0.5
         #print("hellooo", loss_nll.shape, "loss shape")
-        for i in reversed(range(1,len(loss_nll[1])-1)):
-            loss_nll[:,i] = loss_nll[:,i]*i**2
+        #for i in reversed(range(1,len(loss_nll[1])-1)):
+        #    loss_nll[:,i] = loss_nll[:,i]*i**2
 
         loss_nll = loss_nll.mean(dim=-1)
         
