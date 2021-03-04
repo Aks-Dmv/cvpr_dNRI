@@ -92,6 +92,9 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             final_disc_prob = torch.cat([discrim_prob[valid_idx], discrim_prob[valid_idx0]], dim=0)
             final_disc_logits = torch.cat([disc_logits[valid_idx], disc_logits[valid_idx0]], dim=0)
+            if batch_ind == 0:
+                for i in range(logits.shape[1]-1):
+                    print("prob/trgt", final_disc_prob.view(-1, logits.shape[-3]-1, logits.shape[-2])[1,i,:].cpu().numpy(), final_disc_logits.view(-1, logits.shape[-3]-1, logits.shape[-2])[1,i,:].cpu().numpy() )
             disc_loss= CEloss(final_disc_prob, final_disc_logits)
             disc_loss.backward()
             disc_opt.step()
