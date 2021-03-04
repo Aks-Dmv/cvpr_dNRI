@@ -139,7 +139,10 @@ class DNRI(nn.Module):
         loss_kl = self.kl_categorical_learned(prob, prior_logits)
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
-        loss = loss_nll + loss_kl - intervention_loss_nll
+        
+        # intervention cap bounds the contrastive loss
+        intervention_cap = 0.05
+        loss = loss_nll + loss_kl - torch.max(intervention_loss_nll, torch.ones(intervention_loss_nll.shape)*intervention_cap)
         if disc is not None:
             loss = loss.mean() - self.kl_coef*disc_entropy.mean()
         else:
