@@ -77,6 +77,11 @@ class DNRI(nn.Module):
         all_edges = []
         all_predictions = []
         all_priors = []
+        
+        # intervention variables
+        all_interventions = []
+        interv_decoder_hidden = self.decoder.get_initial_hidden(inputs)
+        
         hard_sample = (not is_train) or self.train_hard_sample
         prior_logits, posterior_logits, _ = self.encoder(inputs[:, :-1])
         if not is_train:
@@ -93,6 +98,16 @@ class DNRI(nn.Module):
             else:
                 current_p_logits = prior_logits[:, step]
             predictions, decoder_hidden, edges = self.single_step_forward(current_inputs, decoder_hidden, current_p_logits, hard_sample)
+            
+            # conducting an intervention
+            intervened_indices = torch.randint(current_p_logits.shape[1], (current_p_logits.shape[0],))
+            intervened_p_logits = current_p_logits.clone()
+            for i in range(intervened_indices.shape[0]):
+                intervened_p_logits[i, intervened_indices[i]] *= -1.0
+            
+            interv_predictions, interv_decoder_hidden, _ = self.single_step_forward(current_inputs, interv_decoder_hidden, intervened_p_logits, hard_sample)
+            all_interventions.append(interv_predictions)
+            
             all_predictions.append(predictions)
             all_edges.append(edges)
         all_predictions = torch.stack(all_predictions, dim=1)
