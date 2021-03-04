@@ -126,7 +126,7 @@ class DNRI(nn.Module):
         loss_nll = self.nll(all_predictions, target)
         
         #intervention loss
-        intervention_loss_nll = self.nll(all_predictions, all_interventions).mean(dim=-1)
+        intervention_loss_nll = self.nll(all_interventions, target).mean(dim=-1)
         
         gamma = self.kl_coef*0.5
         #print("hellooo", loss_nll.shape, "loss shape")
