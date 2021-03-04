@@ -90,7 +90,7 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             if batch_ind == 0:
                 print("disc_prob/encoder_logits",discrim_prob.shape, disc_logits.shape)
                 for i in range(logits.shape[1]-1):
-                    print("prob/trgt", discrim_prob[1,i,:].cpu().detach().numpy(), disc_logits[1,i,:].cpu().detach().numpy() )
+                    print("prob/trgt", discrim_prob[1,i,:].cpu().detach().argmax(dim=-1).numpy(), disc_logits[1,i,:].cpu().detach().numpy() )
             
             discrim_prob = discrim_prob.view(-1, logits.shape[-1])
             disc_logits = disc_logits.flatten().detach().clone().long()
