@@ -112,6 +112,9 @@ class DNRI(nn.Module):
             all_edges.append(edges)
         all_predictions = torch.stack(all_predictions, dim=1)
         
+        # interventions
+        all_interventions = torch.stack(all_interventions, dim=1)
+        
         if disc is not None:
             x1_x2_pairs = torch.cat([all_predictions[:, :-1, :, :], all_predictions[:, 1:, :, :]], dim=-1)
             discrim_pred = disc(x1_x2_pairs)
@@ -121,6 +124,9 @@ class DNRI(nn.Module):
 
         target = inputs[:, 1:, :, :]
         loss_nll = self.nll(all_predictions, target)
+        
+        #intervention loss
+        intervention_loss_nll = self.nll(all_predictions, all_interventions).mean(dim=-1)
         
         gamma = self.kl_coef*0.5
         #print("hellooo", loss_nll.shape, "loss shape")
@@ -133,7 +139,7 @@ class DNRI(nn.Module):
         loss_kl = self.kl_categorical_learned(prob, prior_logits)
         if self.add_uniform_prior:
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
-        loss = loss_nll + loss_kl
+        loss = loss_nll + loss_kl - intervention_loss_nll
         if disc is not None:
             loss = loss.mean() - self.kl_coef*disc_entropy.mean()
         else:
