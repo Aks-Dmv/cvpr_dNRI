@@ -84,17 +84,22 @@ def train(model, train_data, val_data, params, train_writer, val_writer):
             loss, loss_nll, loss_kl, logits, all_Preds = model.calculate_loss(inputs, is_train=True, return_logits=True, disc=disc)
             x1_x2_pairs = torch.cat([all_Preds[:, :-1, :, :], all_Preds[:, 1:, :, :]], dim=-1).detach().clone().cuda()
             discrim_pred = disc(x1_x2_pairs)
-            discrim_prob = nn.functional.softmax(discrim_pred, dim=-1).view(-1, logits.shape[-1])
-            disc_logits = logits[:,:-1,:,:].argmax(dim=-1).flatten().detach().clone().long()
+            discrim_prob = nn.functional.softmax(discrim_pred, dim=-1)
+            disc_logits = logits[:,:-1,:,:].argmax(dim=-1)
+            
+            if batch_ind == 0:
+                print("disc_prob/encoder_logits",discrim_prob.shape, disc_logits.shape)
+                for i in range(logits.shape[1]-1):
+                    print("prob/trgt", discrim_prob[1,i,:].cpu().numpy(), disc_logits[1,i,:].cpu().numpy() )
+            
+            discrim_prob = discrim_prob.view(-1, logits.shape[-1])
+            disc_logits = disc_logits.flatten().detach().clone().long()
             
             valid_idx = disc_logits.nonzero().view(-1)
             valid_idx0 = torch.randint(discrim_prob.shape[0], (valid_idx.shape[0],))
             #print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
             final_disc_prob = torch.cat([discrim_prob[valid_idx], discrim_prob[valid_idx0]], dim=0)
             final_disc_logits = torch.cat([disc_logits[valid_idx], disc_logits[valid_idx0]], dim=0)
-            if batch_ind == 0:
-                for i in range(logits.shape[1]-1):
-                    print("prob/trgt", final_disc_prob.view(-1, logits.shape[-3]-1, logits.shape[-2])[1,i,:].cpu().numpy(), final_disc_logits.view(-1, logits.shape[-3]-1, logits.shape[-2])[1,i,:].cpu().numpy() )
             disc_loss= CEloss(final_disc_prob, final_disc_logits)
             disc_loss.backward()
             disc_opt.step()
