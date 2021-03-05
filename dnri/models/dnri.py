@@ -126,7 +126,7 @@ class DNRI(nn.Module):
         loss_nll = self.nll(all_predictions, target)
         
         #intervention loss
-        intervention_loss_nll = self.nll(all_interventions, target).mean(dim=-1)
+        intervention_loss_nll = self.nll(all_interventions, all_predictions).mean(dim=-1)
         
         gamma = self.kl_coef*0.5
         #print("hellooo", loss_nll.shape, "loss shape")
@@ -141,7 +141,7 @@ class DNRI(nn.Module):
             loss_kl = 0.5*loss_kl + 0.5*self.kl_categorical_avg(prob)
         
         # intervention cap bounds the contrastive loss
-        intervention_cap = 0.05
+        intervention_cap = 0.01
         loss = loss_nll + loss_kl - torch.max(intervention_loss_nll, torch.ones(intervention_loss_nll.shape).cuda()*intervention_cap)
         if disc is not None:
             loss = loss.mean() - self.kl_coef*disc_entropy.mean()
