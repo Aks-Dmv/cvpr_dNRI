@@ -142,7 +142,7 @@ class DNRI(nn.Module):
         
         # intervention cap bounds the contrastive loss
         intervention_cap = 0.01
-        loss = loss_nll + loss_kl - torch.max(intervention_loss_nll, torch.ones(intervention_loss_nll.shape).cuda()*intervention_cap)
+        loss = loss_nll + loss_kl - 0.01*torch.max(intervention_loss_nll, torch.ones(intervention_loss_nll.shape).cuda()*intervention_cap)
         if disc is not None:
             loss = loss.mean() - self.kl_coef*disc_entropy.mean()
         else:
